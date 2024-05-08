@@ -1,57 +1,49 @@
 mod structs;
 
-use std::collections::HashMap;
 use std::{fs, process};
 
 use crate::structs::Punlines;
 use chrono::{Datelike, Weekday};
-use config::{Config, Environment, File, FileFormat};
+use config::{Config, ConfigError, Environment, File, FileFormat};
 use frankenstein::AsyncTelegramApi;
 use frankenstein::{
     AsyncApi, BotCommand, GetUpdatesParams, Message, ReplyParameters, SendAnimationParams,
     SendPollParams, SetMyCommandsParams, UpdateContent,
 };
 use rand::prelude::IteratorRandom;
+use serde::Deserialize;
 
-type BotConfig = HashMap<String, String>;
+#[derive(Debug, Deserialize)]
+struct BotConfig {
+    bot_token: String,
+}
+
+impl BotConfig {
+    pub fn new() -> Result<Self, ConfigError> {
+        let config = Config::builder()
+            .add_source(File::new(".env", FileFormat::Toml))
+            .add_source(Environment::default())
+            .build()?;
+
+        config.try_deserialize()
+    }
+}
 
 static CHAT_ID: i64 = 231642019;
 
 #[tokio::main]
 async fn main() {
-    let builder = Config::builder()
-        .add_source(File::new(".env", FileFormat::Toml))
-        .add_source(Environment::default());
-
-    let config = match builder.build() {
-        Ok(config) => config,
+    match BotConfig::new() {
+        Ok(config) => connect_to_api(&config).await,
         Err(e) => {
             eprintln!("Could not build bot configuration: {e}");
-            process::exit(1);
-        }
-    };
-
-    let parsing_result = config.try_deserialize::<BotConfig>();
-
-    match parsing_result {
-        Ok(parsed_config) => connect_to_api(&parsed_config).await,
-        Err(e) => {
-            eprintln!("Could not parse bot configuration: {e}");
             process::exit(1);
         }
     };
 }
 
 async fn connect_to_api(config: &BotConfig) {
-    let token = match config.get("bot_token") {
-        Some(token) => token,
-        None => {
-            eprintln!("Config value for \"bot_token\" is not set.");
-            process::exit(1);
-        }
-    };
-
-    let api = AsyncApi::new(&token);
+    let api = AsyncApi::new(&config.bot_token);
 
     let update_params_builder = GetUpdatesParams::builder();
     let mut update_params = update_params_builder.clone().build();
