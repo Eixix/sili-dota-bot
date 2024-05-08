@@ -13,7 +13,7 @@ use frankenstein::{
 use rand::prelude::IteratorRandom;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 struct BotConfig {
     bot_token: String,
 }
@@ -65,7 +65,7 @@ async fn connect_to_api(config: &BotConfig) {
     loop {
         if get_day_prefix() == "Do" && !sent_dodo {
             sent_dodo = true;
-            send_dodo_poll(api.clone(), None).await;
+            send_dodo_poll(api.clone(), None, config).await;
         } else if get_day_prefix() != "Do" {
             sent_dodo = false
         }
@@ -79,9 +79,10 @@ async fn connect_to_api(config: &BotConfig) {
                 for update in response.result {
                     if let UpdateContent::Message(message) = update.content {
                         let api_clone = api.clone();
+                        let config_clone = config.clone();
 
                         tokio::spawn(async move {
-                            process_message(message, api_clone).await;
+                            process_message(message, api_clone, &config_clone).await;
                         });
                     }
 
@@ -98,7 +99,7 @@ async fn connect_to_api(config: &BotConfig) {
     }
 }
 
-async fn process_message(message: Message, api: AsyncApi) {
+async fn process_message(message: Message, api: AsyncApi, config: &BotConfig) {
     // Check for doubt and its other text forms
     if let Some(ref message_content) = message.text {
         if message_content.contains("doubt") || message_content.contains("daut") {
@@ -117,7 +118,7 @@ async fn process_message(message: Message, api: AsyncApi) {
             }
         }
         if message_content == "/dodo" {
-            send_dodo_poll(api, Some(message.clone())).await;
+            send_dodo_poll(api, Some(message.clone()), config).await;
         }
     }
 }
@@ -135,7 +136,7 @@ fn get_day_prefix() -> &'static str {
     };
 }
 
-async fn send_dodo_poll(api: AsyncApi, message: Option<Message>) {
+async fn send_dodo_poll(api: AsyncApi, message: Option<Message>, config: &BotConfig) {
     let result: Punlines = {
         let file_content =
             fs::read_to_string("resources/punlines.json").expect("Error reading punlines json");
