@@ -1,10 +1,11 @@
 mod structs;
 
-use std::env::var;
-use std::fs;
+use std::collections::HashMap;
+use std::{fs, process};
 
 use crate::structs::Punlines;
 use chrono::{Datelike, Weekday};
+use config::{Config, Environment, File, FileFormat};
 use frankenstein::AsyncTelegramApi;
 use frankenstein::{
     AsyncApi, BotCommand, GetUpdatesParams, Message, ReplyParameters, SendAnimationParams,
@@ -16,14 +17,39 @@ static CHAT_ID: i64 = 231642019;
 
 #[tokio::main]
 async fn main() {
-    match var("BOT_TOKEN") {
-        Ok(val) => connect_to_api(val).await,
-        Err(..) => println!("Needs token to run!"),
-    }
+    let builder = Config::builder()
+        .add_source(File::new(".env", FileFormat::Toml))
+        .add_source(Environment::default());
+
+    let config = match builder.build() {
+        Ok(config) => config,
+        Err(e) => {
+            eprintln!("Could not build bot configuration: {e}");
+            process::exit(1);
+        }
+    };
+
+    let parsing_result = config.try_deserialize::<HashMap<String, String>>();
+
+    match parsing_result {
+        Ok(parsed_config) => connect_to_api(parsed_config).await,
+        Err(e) => {
+            eprintln!("Could not parse bot configuration: {e}");
+            process::exit(1);
+        }
+    };
 }
 
-async fn connect_to_api(token: String) {
-    let api = AsyncApi::new(&*token);
+async fn connect_to_api(config: HashMap<String, String>) {
+    let token = match config.get("bot_token") {
+        Some(token) => token,
+        None => {
+            eprintln!("Config value for \"bot_token\" is not set.");
+            process::exit(1);
+        }
+    };
+
+    let api = AsyncApi::new(&token);
 
     let update_params_builder = GetUpdatesParams::builder();
     let mut update_params = update_params_builder.clone().build();
