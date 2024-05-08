@@ -13,6 +13,8 @@ use frankenstein::{
 };
 use rand::prelude::IteratorRandom;
 
+type BotConfig = HashMap<String, String>;
+
 static CHAT_ID: i64 = 231642019;
 
 #[tokio::main]
@@ -29,7 +31,7 @@ async fn main() {
         }
     };
 
-    let parsing_result = config.try_deserialize::<HashMap<String, String>>();
+    let parsing_result = config.try_deserialize::<BotConfig>();
 
     match parsing_result {
         Ok(parsed_config) => connect_to_api(parsed_config).await,
@@ -40,7 +42,7 @@ async fn main() {
     };
 }
 
-async fn connect_to_api(config: HashMap<String, String>) {
+async fn connect_to_api(config: BotConfig) {
     let token = match config.get("bot_token") {
         Some(token) => token,
         None => {
