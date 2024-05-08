@@ -16,6 +16,7 @@ use serde::Deserialize;
 #[derive(Clone, Debug, Deserialize)]
 struct BotConfig {
     bot_token: String,
+    chat_id: i64,
 }
 
 impl BotConfig {
@@ -28,8 +29,6 @@ impl BotConfig {
         config.try_deserialize()
     }
 }
-
-static CHAT_ID: i64 = 231642019;
 
 #[tokio::main]
 async fn main() {
@@ -108,7 +107,7 @@ async fn process_message(message: Message, api: AsyncApi, config: &BotConfig) {
                 .build();
             let file_path = std::path::PathBuf::from("resources/i_daut_it.gif");
             let send_animation_params = SendAnimationParams::builder()
-                .chat_id(CHAT_ID)
+                .chat_id(config.chat_id)
                 .animation(file_path)
                 .reply_parameters(reply_parameters)
                 .build();
@@ -155,7 +154,7 @@ async fn send_dodo_poll(api: AsyncApi, message: Option<Message>, config: &BotCon
             .build();
         let send_poll_params = SendPollParams::builder()
             .reply_parameters(reply_parameters)
-            .chat_id(CHAT_ID)
+            .chat_id(config.chat_id)
             .question("Dodo?")
             .options(vec![yes_answer.clone(), no_answer.clone()])
             .build();
@@ -164,7 +163,7 @@ async fn send_dodo_poll(api: AsyncApi, message: Option<Message>, config: &BotCon
         }
     } else {
         let send_poll_params = SendPollParams::builder()
-            .chat_id(CHAT_ID)
+            .chat_id(config.chat_id)
             .question("Do".to_owned() + get_day_prefix())
             .options(vec![yes_answer.clone(), no_answer.clone()])
             .build();
