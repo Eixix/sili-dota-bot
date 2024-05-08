@@ -11,7 +11,6 @@ use frankenstein::{
     SendPollParams, SetMyCommandsParams, UpdateContent,
 };
 use rand::prelude::IteratorRandom;
-use serde::{Deserialize, Serialize};
 
 static CHAT_ID: i64 = 231642019;
 
