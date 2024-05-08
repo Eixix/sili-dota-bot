@@ -34,7 +34,7 @@ async fn main() {
     let parsing_result = config.try_deserialize::<BotConfig>();
 
     match parsing_result {
-        Ok(parsed_config) => connect_to_api(parsed_config).await,
+        Ok(parsed_config) => connect_to_api(&parsed_config).await,
         Err(e) => {
             eprintln!("Could not parse bot configuration: {e}");
             process::exit(1);
@@ -42,7 +42,7 @@ async fn main() {
     };
 }
 
-async fn connect_to_api(config: BotConfig) {
+async fn connect_to_api(config: &BotConfig) {
     let token = match config.get("bot_token") {
         Some(token) => token,
         None => {
